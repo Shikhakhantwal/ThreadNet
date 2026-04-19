@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreatNet - FAQ & Introduction</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .faq-container {
+            max-width: 800px;
+            margin: 4rem auto;
+            padding: 2rem;
+        }
+        .faq-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: var(--shadow);
+        }
+        .faq-item {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 1.5rem;
+        }
+        .faq-question {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .faq-answer {
+            color: var(--text-s);
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+        .contact-info {
+            margin-top: 3rem;
+            padding: 1.5rem;
+            background: rgba(0, 243, 255, 0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(0, 243, 255, 0.1);
+            text-align: center;
+        }
+        .next-btn {
+            margin-top: 2rem;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .lang-switcher {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text-p);
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="faq-container">
+        <div class="faq-card">
+            <select class="lang-switcher" onchange="location.href='/set_language/'+this.value">
+                <option value="en" {% if current_lang == 'en' %}selected{% endif %}>{{ _t('english') }}</option>
+                <option value="hi" {% if current_lang == 'hi' %}selected{% endif %}>{{ _t('hindi') }}</option>
+                <option value="gu" {% if current_lang == 'gu' %}selected{% endif %}>{{ _t('gujarati') }}</option>
+            </select>
+
+            <h1 style="margin-bottom: 0.5rem; background: linear-gradient(to right, var(--primary), var(--secondary)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">{{ _t('kb_title') }}</h1>
+            <p style="color: var(--text-s); margin-bottom: 3rem;">{{ _t('kb_subtitle') }}</p>
+
+            <div class="faq-item">
+                <div class="faq-question"><i data-lucide="file-text"></i> {{ _t('faq1_q') }}</div>
+                <div class="faq-answer">{{ _t('faq1_a') }}</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question"><i data-lucide="cpu"></i> {{ _t('faq2_q') }}</div>
+                <div class="faq-answer">{{ _t('faq2_a')|safe }}</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question"><i data-lucide="bar-chart-3"></i> {{ _t('faq3_q') }}</div>
+                <div class="faq-answer">{{ _t('faq3_a') }}</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question"><i data-lucide="alert-triangle"></i> {{ _t('faq4_q') }}</div>
+                <div class="faq-answer">{{ _t('faq4_a') }}</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question"><i data-lucide="help-circle"></i> {{ _t('faq5_q') }}</div>
+                <div class="faq-answer">{{ _t('faq5_a') }}</div>
+            </div>
+
+            <div class="contact-info">
+                <p style="font-weight: 600; color: var(--text-p); margin-bottom: 0.5rem;">{{ _t('contact_q') }}</p>
+                <p style="color: var(--text-s);">{{ _t('contact_a') }} <span style="color: var(--secondary);">SHIKHA KHANTWAL</span> AND <span style="color: var(--secondary);">VAISHNAVI CHANDANI</span></p>
+            </div>
+
+            <a href="/dashboard" class="next-btn">
+                <button style="padding: 1rem 4rem;">{{ _t('proceed_btn') }} <i data-lucide="arrow-right" style="width: 18px; vertical-align: middle; margin-left: 0.5rem;"></i></button>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

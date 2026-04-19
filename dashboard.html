@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ _t('title') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .grid { margin-top: 1rem; }
+        .chart-wrapper { height: 280px; margin-top: 1rem; }
+        .nav-link { color: var(--text-s); font-size: 0.85rem; font-weight: 600; transition: color 0.2s; }
+        .nav-link:hover { color: var(--primary); }
+        .tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1.5rem; }
+        .tool-link { 
+            background: rgba(255, 255, 255, 0.03); 
+            padding: 1rem; 
+            border-radius: 12px; 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            text-decoration: none; 
+            color: var(--text-s); 
+            font-size: 0.8rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 0.5rem; 
+            transition: all 0.2s;
+        }
+        .tool-link:hover { background: rgba(0, 243, 255, 0.1); color: var(--primary); border-color: var(--primary); }
+        textarea { width: 100%; border-radius: 14px; background: rgba(5, 11, 21, 0.6); border: 1px solid var(--border); color: var(--text-p); padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.85rem; resize: vertical; margin-top: 0.5rem; }
+        #recordingIndicator { display: none; color: #ff0055; animation: pulse 1s infinite; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 0.75rem; }
+        
+        .lang-switcher {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text-p);
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            outline: none;
+        }
+        .history-btn {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text-s);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 100;
+        }
+        .history-dropdown {
+            display: none;
+            position: absolute;
+            top: 4.5rem;
+            left: 2.2rem;
+            width: 300px;
+            background: #0d1930;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            z-index: 101;
+            padding: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .history-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.8rem;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <button class="history-btn" onclick="const d = document.getElementById('histBox'); d.style.display = d.style.display === 'block' ? 'none' : 'block';">
+        <i data-lucide="history"></i> PREVIOUS HISTORY
+    </button>
+    <div id="histBox" class="history-dropdown">
+        <h4 style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--primary);">SESSION LOGS</h4>
+        {% if history %}
+            {% for session_data in history %}
+                <div class="history-item">
+                    <div style="color: var(--text-s); font-size: 0.7rem;">Session: {{ session_data.end_time }}</div>
+                    <div style="color: var(--primary);">Alerts: {{ session_data.count }}</div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="font-size: 0.75rem; color: var(--text-s);">No previous history stored.</p>
+        {% endif %}
+    </div>
+    <div class="dashboard-container">
+        <div class="header">
+            <div class="logo-section">
+                <h1>{{ _t('heading') }}<span style="color: var(--secondary);">{{ _t('subheading') }}</span></h1>
+                <p style="color: var(--text-s); font-size: 0.75rem; letter-spacing: 2.5px; text-transform: uppercase;">{{ _t('subtitle') }}</p>
+            </div>
+            <div style="display: flex; gap: 1.5rem; align-items: center;">
+                <div class="user-badge">
+                    <div class="status-dot"></div>
+                    <span style="font-size: 0.85rem; font-weight: 600; letter-spacing: 0.5px;">{{ _t('secured_session') }}: {{ session['user'] }}</span>
+                </div>
+                
+                <select class="lang-switcher" onchange="location.href='/set_language/'+this.value">
+                    <option value="en" {% if current_lang == 'en' %}selected{% endif %}>{{ _t('english') }}</option>
+                    <option value="hi" {% if current_lang == 'hi' %}selected{% endif %}>{{ _t('hindi') }}</option>
+                    <option value="gu" {% if current_lang == 'gu' %}selected{% endif %}>{{ _t('gujarati') }}</option>
+                </select>
+
+                <div style="display: flex; gap: 1.5rem; align-items: center; border-left: 1px solid var(--border); padding-left: 1.5rem;">
+                    <div id="recordingIndicator"><i data-lucide="circle-slash"></i> REC</div>
+                    <button id="recordBtn" style="padding: 0.5rem 1rem; font-size: 0.7rem; width: auto; background: var(--card-bg); color: var(--primary); border: 1px solid var(--primary);">REC</button>
+                    <a href="/terminate" class="nav-link" style="text-decoration: none;">{{ _t('terminate') }}</a>
+                </div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="grid">
+            <div class="card card-stat">
+                <span class="stat-label"><i data-lucide="shield-alert" style="width: 12px; margin-bottom: -2px;"></i> {{ _t('total_signals') }}</span>
+                <div class="stat-value">{{ stats.total }}</div>
+                <p style="font-size: 0.8rem; color: var(--text-s);">{{ _t('telemetry') }}</p>
+            </div>
+            <div class="card card-stat">
+                <span class="stat-label" style="color: var(--accent);">{{ _t('critical') }}</span>
+                <div class="stat-value" style="color: var(--accent);">{{ stats.critical }}</div>
+                <p style="font-size: 0.8rem; color: var(--text-s);">{{ _t('threats') }}</p>
+            </div>
+            <div class="card card-stat">
+                <span class="stat-label" style="color: var(--warning);">{{ _t('suspicious') }}</span>
+                <div class="stat-value" style="color: var(--warning);">{{ stats.high }}</div>
+                <p style="font-size: 0.8rem; color: var(--text-s);">{{ _t('anomalous') }}</p>
+            </div>
+            <div class="card card-stat">
+                <span class="stat-label" style="color: var(--primary);">{{ _t('system_info') }}</span>
+                <div class="stat-value" style="color: var(--primary);">{{ stats.medium + stats.low }}</div>
+                <p style="font-size: 0.8rem; color: var(--text-s);">{{ _t('operational_log') }}</p>
+            </div>
+            
+            <div class="card card-wide">
+                <span class="section-title"><i data-lucide="activity"></i> {{ _t('visualization') }}</span>
+                <div class="chart-wrapper">
+                    <canvas id="threatChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card card-wide">
+                <span class="section-title" style="color: #fff; font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="color: var(--primary); font-weight: 800;">>_</span> Data Ingestion
+                </span>
+
+                <form action="/analyze-combined" method="POST" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <!-- File Upload -->
+                    <div>
+                        <label style="font-size: 0.85rem; color: var(--text-s); margin-bottom: 0.5rem; display: block;">Select Log File from PC</label>
+                        <div style="background: #1a2235; border: 1px solid rgba(255,255,255,0.08); padding: 0.5rem 1rem; border-radius: 8px; display: flex; align-items: center;">
+                            <input type="file" name="file" style="background: transparent; border: none; padding: 0; color: #f1f5f9; width: 100%; outline: none; font-size: 0.85rem; box-shadow: none;">
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; color: var(--text-s); font-size: 0.8rem; font-weight: 700; margin: -0.5rem 0;">- AND / OR -</div>
+
+                    <!-- Text Paste -->
+                    <div>
+                        <label style="font-size: 0.85rem; color: var(--text-s); margin-bottom: 0.5rem; display: block;">(Optional) Paste Raw Logs</label>
+                        <textarea name="log_content" placeholder="Paste log lines here..." style="background: #1a2235; border: 1px solid rgba(255,255,255,0.08); color: #f1f5f9; border-radius: 8px; padding: 1rem; resize: vertical; height: 120px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; width: 100%; display: block; box-sizing: border-box; margin: 0; outline: none; box-shadow: none;"></textarea>
+                    </div>
+
+                    <input type="hidden" name="log_type" value="linux_auth">
+                    <button type="submit" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='none'" style="background: #5e6ad2; color: #fff; text-transform: none; font-size: 0.95rem; font-weight: 600; padding: 0.9rem; border-radius: 8px; border: none; box-shadow: none; cursor: pointer; transition: 0.2s;">Analyze Intelligence</button>
+                </form>
+            </div>
+
+            <div class="card card-wide">
+                <span class="section-title"><i data-lucide="wrench"></i> {{ _t('tools_title') }}</span>
+                <div style="margin-top: 0.5rem;">
+                    <label style="font-size: 0.75rem; color: var(--text-s);">{{ _t('encode_decode') }}</label>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <input type="text" id="toolInput" placeholder="Enter text or URL..." style="flex: 2; padding: 0.6rem;">
+                        <select id="toolMethod" style="flex: 1; padding: 0.6rem; font-size: 0.75rem;">
+                            <option value="base64">Base64</option>
+                            <option value="url">URL Encode</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button id="encodeBtn" style="flex: 1; padding: 0.6rem; font-size: 0.75rem;">{{ _t('encode') }}</button>
+                        <button id="decodeBtn" style="flex: 1; padding: 0.6rem; font-size: 0.75rem;" class="btn-secondary">{{ _t('decode') }}</button>
+                    </div>
+                </div>
+
+                <div class="tools-grid">
+                    <a href="https://support.google.com/calendar/answer/62145?hl=en" target="_blank" class="tool-link" title="Use the Calendar Troubleshooter for help with Calendar issues.">
+                        <i data-lucide="calendar"></i> {{ _t('troubleshoot_calendar') }}
+                    </a>
+                    <a href="https://support.google.com/mail/answer/70153?hl=en" target="_blank" class="tool-link" title="Learn more about fixing Gmail Errors.">
+                        <i data-lucide="mail"></i> {{ _t('troubleshoot_gmail') }}
+                    </a>
+                    <a href="https://chrome.google.com/webstore/detail/chrome-connectivity-diagn/idddpebejgnglgkjjoikjoeakgaliecl" target="_blank" class="tool-link" title="Quickly and easily test and troubleshoot Chrome and ChromeOS.">
+                        <i data-lucide="cpu"></i> {{ _t('troubleshoot_chrome') }}
+                    </a>
+                    <a href="https://developers.google.com/speed/public-dns/cache" target="_blank" class="tool-link" title="Flush the DNS cache for a domain in the Google public DNS cache (8.8.4.4 and 8.8.8.8)">
+                        <i data-lucide="globe"></i> {{ _t('flush_dns') }}
+                    </a>
+                    <a href="https://support.google.com/meet/answer/10620276?hl=en" target="_blank" class="tool-link" title="Use the WebRTC Troubleshooter to identify potential issues with WebRTC services.">
+                        <i data-lucide="video"></i> {{ _t('troubleshoot_webrtc') }}
+                    </a>
+                    <a href="/faq" class="tool-link" title="Learn more about ThreatNet system.">
+                        <i data-lucide="help-circle"></i> {{ _t('faq') }}
+                    </a>
+                </div>
+            </div>
+
+            <div class="card card-wide">
+                <span class="section-title"><i data-lucide="message-square"></i> {{ _t('system_feedback') }}</span>
+                <p style="font-size: 0.75rem; color: var(--text-s); margin-top: 0.5rem;">{{ _t('feedback_desc') }}</p>
+                <form action="/submit_feedback" method="POST" style="margin-top: 1rem;">
+                    <textarea name="feedback" rows="3" placeholder="{{ _t('feedback_placeholder') }}" required></textarea>
+                    <div style="display: flex; gap: 1rem; margin-top: 0.5rem; align-items: center;">
+                        <button type="submit" class="btn-secondary" style="font-size: 0.75rem; padding: 0.5rem;">{{ _t('submit_feedback') }}</button>
+                        <a href="/view_feedback" class="nav-link" style="text-decoration: underline;">{{ _t('view_feedback_admin') }}</a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card card-full">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <span class="section-title" style="margin: 0;"><i data-lucide="list"></i> {{ _t('live_timeline') }}</span>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <div style="position: relative;">
+                            <i data-lucide="search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); width: 14px; color: var(--text-s);"></i>
+                            <input type="text" id="searchInput" placeholder="{{ _t('search_placeholder') }}" style="padding-left: 2.5rem; width: 300px; font-size: 0.8rem;">
+                        </div>
+                        <select id="severityFilter" style="width: 150px; font-size: 0.8rem;">
+                            <option value="ALL">{{ _t('all_sources') }}</option>
+                            <option value="CRITICAL">CRITICAL</option>
+                            <option value="HIGH">ANOMALY</option>
+                            <option value="MEDIUM">INFORMATIONAL</option>
+                        </select>
+                        <a href="/export/json" style="text-decoration: none;"><button class="btn-secondary" style="padding: 0.5rem 1rem; margin: 0; font-size: 0.75rem;">{{ _t('export_json') }}</button></a>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="incidentTable">
+                        <thead>
+                            <tr>
+                                <th>{{ _t('timestamp') }}</th>
+                                <th>{{ _t('level') }}</th>
+                                <th>{{ _t('incident') }}</th>
+                                <th>{{ _t('reasoning') }}</th>
+                                <th>{{ _t('evidence') }}</th>
+                                <th>{{ _t('mitigation') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if alerts %}
+                                {% for alert in alerts %}
+                                <tr class="incident-row {% if alert.severity == 'CRITICAL' or alert.severity == 'ERROR' %}critical-highlight{% endif %}" data-severity="{{ alert.severity }}">
+                                    <td style="white-space: nowrap; font-size: 0.8rem;">{{ alert.timestamp }}</td>
+                                    <td><span class="severity sev-{{ alert.severity }}">{{ alert.severity }}</span></td>
+                                    <td><strong>{{ alert.description }}</strong></td>
+                                    <td style="font-size: 0.8rem; color: var(--text-secondary);">{{ alert.reasoning }}</td>
+                                    <td><div class="log-line" title="{{ alert.log_line }}">{{ alert.log_line }}</div></td>
+                                    <td style="color: var(--secondary-color); font-size: 0.85rem;">{{ alert.advice }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                                        {{ _t('no_logs') }}
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('threatChart').getContext('2d');
+        const labels = {{ alerts|map(attribute='timestamp')|list|tojson }};
+        const severities = {{ alerts|map(attribute='severity')|list|tojson }};
+        
+        // Convert severities to numeric values for y-axis
+        const dataValues = severities.map(s => {
+            if (s === 'CRITICAL') return 4;
+            if (s === 'HIGH') return 3;
+            if (s === 'MEDIUM') return 2;
+            return 1;
+        });
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels.reverse(),
+                datasets: [{
+                    label: 'Threat Severity Over Time',
+                    data: dataValues.reverse(),
+                    borderColor: '#00ff88',
+                    backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: severities.map(s => {
+                        if (s === 'CRITICAL') return '#ff0055';
+                        if (s === 'HIGH') return '#ff0055';
+                        if (s === 'MEDIUM') return '#ffa500';
+                        return '#00ff88';
+                    })
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: {
+                            color: '#94a3b8',
+                            callback: function(value) {
+                                return ['None', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'][value];
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8', display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // Search and Filter logic
+        const searchInput = document.getElementById('searchInput');
+        const severityFilter = document.getElementById('severityFilter');
+        const rows = document.querySelectorAll('.incident-row');
+
+        function filterTable() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filterValue = severityFilter.value;
+
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                const severity = row.getAttribute('data-severity');
+                
+                const matchesSearch = text.includes(searchTerm);
+                const matchesSeverity = filterValue === 'ALL' || severity === filterValue;
+
+                if (matchesSearch && matchesSeverity) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        searchInput.addEventListener('input', filterTable);
+        severityFilter.addEventListener('change', filterTable);
+
+
+
+        // Encode/Decode Logic
+        const toolInput = document.getElementById('toolInput');
+        const toolMethod = document.getElementById('toolMethod');
+        
+        document.getElementById('encodeBtn').addEventListener('click', () => {
+            if (toolMethod.value === 'base64') {
+                toolInput.value = btoa(toolInput.value);
+            } else {
+                toolInput.value = encodeURIComponent(toolInput.value);
+            }
+        });
+
+        document.getElementById('decodeBtn').addEventListener('click', () => {
+            try {
+                if (toolMethod.value === 'base64') {
+                    toolInput.value = atob(toolInput.value);
+                } else {
+                    toolInput.value = decodeURIComponent(toolInput.value);
+                }
+            } catch(e) {
+                alert('Decoding failed. Please check your input format.');
+            }
+        });
+
+        // Screen Recording Logic
+        let mediaRecorder;
+        let recordedChunks = [];
+        const recordBtn = document.getElementById('recordBtn');
+        const indicator = document.getElementById('recordingIndicator');
+
+        recordBtn.addEventListener('click', async () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                recordBtn.innerText = 'REC';
+                recordBtn.style.borderColor = 'var(--primary)';
+                recordBtn.style.color = 'var(--primary)';
+                indicator.style.display = 'none';
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                mediaRecorder = new MediaRecorder(stream);
+                recordedChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) recordedChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `threatnet_recording_${Date.now()}.webm`;
+                    a.click();
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                recordBtn.innerText = 'STOP';
+                recordBtn.style.borderColor = '#ff0055';
+                recordBtn.style.color = '#ff0055';
+                indicator.style.display = 'flex';
+            } catch (err) {
+                console.error("Error starting recording:", err);
+                alert("Failed to start recording. Please ensure you grant display permissions.");
+            }
+        });
+
+        // Initialize Icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
